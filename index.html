@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件传输基础实现</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="./css/index.css">
+</head>
+
+<body>
+    <!-- 拖拽区域 -->
+    <div class="drag-area">拖拽文件上传</div>
+    <div class="upload-input">
+        <input type="file" class="input-file" multiple>
+        <input type="file" class="input-directory" directory webkitdirectory multiple>
+    </div>
+    <div class="upload-button">
+        <button class="button-upload-file">上传文件</button>
+        <button class="button-upload-directory">上传文件夹</button>
+    </div>
+    <div class="download-list">
+        <div class="download-label">
+            | <span>文件名</span> |
+            <span>类型</span> |
+            <span>大小</span> |
+            <span>状态</span> |
+            <span>操作</span> |
+        </div>
+        <!-- <div class="info-list">
+            <img src="./icon/wenjian.svg" alt="文件预览图片" class="file-preview" />
+            <div class="download-processInfo">
+                <div class="baseInfo">
+                    <span>文件名</span>
+                    <span>类型</span>
+                    <span>大小</span>
+                    <span>状态</span>
+                </div>
+                <div class="process"></div>
+            </div>
+            <div class="button-control">
+                <button class="button-again active">重新上传</button>
+                <button class="button-end">取消上传</button>
+            </div>
+        </div> -->
+    </div>
+    <script type="module" src="./js/fileUpload.js"></script>
+    <script type="module" src="./js/uploadApi.js"></script>
+</body>
+
+</html>

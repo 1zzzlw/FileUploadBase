@@ -1,0 +1,1 @@
+export const sendFile  = (data, config) => axios.post('http://localhost:8080/message/sendFile', data, config)

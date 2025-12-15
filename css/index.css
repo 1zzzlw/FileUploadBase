@@ -1,0 +1,116 @@
+body,
+html {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* 禁止文本选择 */
+    user-select: none;
+    gap: 10px;
+}
+
+.active {
+    display: none;
+}
+
+.drag-area {
+    width: 100%;
+    height: 180px;
+    border: 2px dotted #ccc;
+    text-align: center;
+    line-height: 180px;
+    color: #ccc;
+    /* 忽略边框尺寸 */
+    box-sizing: border-box;
+    transition: all 0.3s;
+}
+
+.dragenter {
+    background-color: #ccc;
+}
+
+.upload-input {
+    display: none;
+}
+
+.download-list {
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    border: 2px solid #ccc;
+    box-sizing: border-box;
+    /* overflow: hidden; */
+}
+
+.download-label {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+}
+
+.info-list {
+    width: 100%;
+    height: 80px;
+    display: flex;
+    border-bottom: 1px solid skyblue;
+}
+
+.file-preview {
+    width: 75px;
+    height: 75px;
+}
+
+.download-processInfo {
+    width: 79%;
+    height: 75px;
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+    gap: 10px;
+    position: relative;
+}
+
+.baseInfo {
+    width: 93%;
+    height: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.process {
+    width: 96%;
+    height: 40px;
+    margin-bottom: 20px;
+    --process: 0;
+    border: 2px solid black;
+    counter-reset: process-counter var(--process);
+}
+
+.process::before {
+    content: '';
+    display: block;
+    height: 100%;
+    width: calc(var(--process) * 1%);
+    background-color: greenyellow;
+    transition: width 0.3s;
+}
+
+.process::after {
+    content: counter(process-counter) '%';
+    position: absolute;
+    top: 30px;
+    right: 5px;
+}
+
+.button-control {
+    width: 160px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
