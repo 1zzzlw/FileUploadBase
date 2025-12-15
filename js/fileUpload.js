@@ -15,17 +15,11 @@ class fileInfoClass {
         this.process = 0
         this.startProcess = 0
         this.endProcess = 100
-        this.processList = []
     }
 
     getFileByIndex(index) {
         return fileList[index]
     }
-
-    addprocessListDiv(processList) {
-        processList.push(processList)
-    }
-
 }
 
 const doms = {
@@ -98,52 +92,35 @@ function updateInfoList(fileList) {
     for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i]
         const fileInfo = new fileInfoClass(file)
-        const infoList = document.createElement('div')
-        infoList.innerHTML = ` 
+
+        html += `   
+        <div class="info-list">
             <img src="./icon/wenjian.svg" alt="文件预览图片" class="file-preview" />
-            <div class="download-processInfo">
-                <div class="baseInfo">
-                    <span>${fileInfo.fileName}</span>
-                    <span>${fileInfo.fileType}</span>
-                    <span>${fileInfo.fileSize}</span>
-                    <span>状态</span>
-                </div>  
-                <div class="process process-${i}"></div>
-            </div>
-            <div class="button-control">
-                <button class="button-again-${i} active">重新上传</button>
-                <button class="button-end-${i}">取消上传</button>
-            </div>
+                <div class="download-processInfo">
+                    <div class="baseInfo">
+                        <span>${fileInfo.fileName}</span>
+                        <span>${fileInfo.fileType}</span>
+                        <span>${fileInfo.fileSize}</span>
+                        <span>状态</span>
+                    </div>  
+                    <div class="process process-${i}"></div>
+                </div>
+                <div class="button-control">
+                    <button class="button-again-${i} active">重新上传</button>
+                    <button class="button-end-${i}">取消上传</button>
+                </div>
+        </div>     
         `
-        // html += `   
-        // <div class="info-list">
-        //     <img src="./icon/wenjian.svg" alt="文件预览图片" class="file-preview" />
-        //         <div class="download-processInfo">
-        //             <div class="baseInfo">
-        //                 <span>${fileInfo.fileName}</span>
-        //                 <span>${fileInfo.fileType}</span>
-        //                 <span>${fileInfo.fileSize}</span>
-        //                 <span>状态</span>
-        //             </div>  
-        //             <div class="process process-${i}"></div>
-        //         </div>
-        //         <div class="button-control">
-        //             <button class="button-again-${i} active">重新上传</button>
-        //             <button class="button-end-${i}">取消上传</button>
-        //         </div>
-        // </div>     
-        // `
 
         /** 
          * 传递一个就上传一个，关键是需要记住process的进度
          * 否则选择新的文件长传的时候会刷新进度为0
          */
         // uploadFile(fileInfo, i)
-        doms.downloadList.appendChild(infoList)
     }
     // 重新添加表头元素，并覆盖原来的值重新进行赋值
-    // doms.downloadList.replaceChildren(label)
-    // doms.downloadList.innerHTML += html
+    doms.downloadList.replaceChildren(label)
+    doms.downloadList.innerHTML += html
 
 }
 
