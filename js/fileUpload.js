@@ -1,4 +1,5 @@
 import { sendFile } from './uploadApi.js';
+import { createThread } from './createWorker.js';
 
 const $ = document.querySelector.bind(document)
 
@@ -12,6 +13,13 @@ const doms = {
     downloadProcessInfo: $('.download-processInfo'),
 }
 
+const status = {
+    waitting: '等待上传',
+    uploading: '上传中',
+    paused: '已暂停',
+    success: '上传成功',
+    failed: '上传失败',
+}
 
 class FileBaseInfo {
     constructor(file) {
@@ -19,6 +27,7 @@ class FileBaseInfo {
         this.fileName = file.name
         this.fileType = file.type
         this.fileSize = file.size
+        this.fileStatus = status.uploading
         this.process = 0
         this.startProcess = 0
         this.endProcess = 100
@@ -99,7 +108,6 @@ class FileListStatus {
                     this.buttonAgainList[i].classList.remove('active')
                 }
             }
-            console.info(this.processList)
         })
     }
 
@@ -124,7 +132,6 @@ class FileListStatus {
 
         } else {
             // 如果是文件，直接更新文件列表
-            console.info(entry)
             entry.file((file) => {
                 this.addFileToList(file)
             })
@@ -142,8 +149,6 @@ class FileListStatus {
 const fileListStatus = new FileListStatus()
 
 function updateInfoList(fileInfo, index) {
-    console.info(fileInfo)
-
     const infoList = document.createElement('div')
     infoList.className = 'info-list'
     infoList.innerHTML = ` 
@@ -153,7 +158,7 @@ function updateInfoList(fileInfo, index) {
                 <span>${fileInfo.fileName}</span>
                 <span>${fileInfo.fileType}</span>
                 <span>${fileInfo.fileSize}</span>
-                <span>状态</span>
+                <span>${fileInfo.fileStatus}</span>
             </div>  
             <div class="process process-${index}"></div>
         </div>
@@ -177,31 +182,169 @@ function updateInfoList(fileInfo, index) {
 }
 
 async function uploadFile(fileInfo, index) {
-    const formData = new FormData()
-
     const file = fileInfo.file
 
-    console.info(file)
+    // 多线程分块
+    multiThreadUpload(fileInfo, file, index)
 
-    formData.append('file', file)
+    // 测试不使用worker线程来计算文件的hash和分块
+    // singleThreadUpload(fileInfo, file, index)
+
+    // 获得完整文件的hash
+    // getFileHash(file)
+
+
+}
+
+async function multiThreadUpload(fileInfo, file, index) {
+    const fileSpark = new SparkMD5.ArrayBuffer()
+
+    // 对文件进行切片，得到
+    const chunks = await createThread(file)
+
+    console.info(chunks)
+
+    // 计算总文件的大小
+    for (const chunk of chunks) {
+        fileSpark.append(chunk.chunkArrayBuffer)
+    }
+
+    const fileHash = fileSpark.end()
+
+    for (let i = 0; i < chunks.length; i++) {
+        console.info(i)
+        const { chunkIndex, chunkHash, chunkBlob } = chunks[i]
+
+        upload(fileInfo, chunkIndex, chunkHash, chunkBlob, fileHash, index)
+    }
+}
+
+async function singleThreadUpload(fileInfo, file, index) {
+    // 测试不使用worker线程来计算文件的hash和分块
+    const chunks1 = await computedFileChunk(file)
+
+    const fileHash = chunks1.fileHash
+
+    console.info('chunks1', chunks1.chunks)
+
+    for (let i = 0; i < chunks1.chunks.length; i++) {
+        console.info(i)
+        const { chunkIndex, chunkHash, chunkBlob } = chunks1.chunks[i]
+
+        upload(fileInfo, chunkIndex, chunkHash, chunkBlob, fileHash, index)
+    }
+
+}
+
+async function upload(fileInfo, chunkIndex, chunkHash, chunkBlob, fileHash, index) {
+    const formData = new FormData()
+
+    formData.append('chunkBlob', chunkBlob)
+    formData.append('chunkIndex', chunkIndex)
+    formData.append('chunkHash', chunkHash)
+    formData.append('fileHash', fileHash)
 
     // 配置监听传输的进程
     const config = {
         onUploadProgress: (e) => {
             // 如果文件大小未知，直接退出
             if (!e.lengthComputable) return
-            const loaded = e.loaded
+            const chunkLoaded = e.loaded
             // 四舍五入
-            const process = Math.round(loaded / file.size * 100)
-            fileListStatus.processList[index].style.setProperty('--process', process)
+            let process = fileInfo.process
+            process += Math.round(chunkLoaded / chunkBlob.size * 100)
+            fileListStatus.processList[index].style.setProperty('--process', process > 100 ? 100 : process)
         }
     }
 
     await sendFile(formData, config).then((res) => {
         console.info('发送成功', res.data)
+        fileInfo.fileStatus = status.success
     }).catch((error) => {
         console.info(error)
     })
 }
 
+// 测试不使用worker线程来计算文件的hash和分块
+function computedFileChunk(file) {
+    return new Promise((resolve) => {
+        console.info('file.size ====> ', file.size)
+
+        const CHUNK_SIZE = 1024 * 1024 * 1
+
+        const chunkCount = Math.ceil(file.size / CHUNK_SIZE)
+
+        const chunkSpark = new SparkMD5.ArrayBuffer()
+
+        let processedChunks = 0
+
+        let result = []
+
+        const fileSpark = new SparkMD5.ArrayBuffer()
+
+        console.info('chunkCount ===> ', chunkCount)
+
+        for (let i = 0; i < chunkCount; i++) {
+            const start = i * CHUNK_SIZE
+            let end = start + CHUNK_SIZE
+
+            if (end > file.size) end = file.size
+
+            // 每个blob新建独立的FileReader
+            const fileReader = new FileReader()
+
+            const blob = file.slice(start, end)
+
+            fileReader.onload = (e) => {
+
+                chunkSpark.append(e.target.result)
+                fileSpark.append(e.target.result)
+
+                const chunkHash = chunkSpark.end()
+
+                console.info(`第${i}个块的hash值是${chunkHash}`)
+
+                processedChunks++
+
+                if (processedChunks == chunkCount) {
+                    const fileHash = fileSpark.end()
+                    console.info(`总文件的hash值是${fileHash}`)
+                    resolve({
+                        chunks: result,
+                        fileHash: fileHash
+                    })
+                }
+
+                result.push({
+                    chunkIndex: i,
+                    chunkHash: chunkHash,
+                    chunkBlob: blob
+                })
+            }
+
+            fileReader.readAsArrayBuffer(blob)
+        }
+    })
+}
+
+function getFileHash(file) {
+
+    const fileReader = new FileReader()
+
+    const spark = new SparkMD5.ArrayBuffer()
+
+    fileReader.onload = (e) => {
+        // const hash = SparkMD5.ArrayBuffer.hash(e.target.result)
+
+        spark.append(e.target.result)
+
+        console.info(spark.end())
+    }
+
+    fileReader.readAsArrayBuffer(file)
+}
+
+window.printf = function () {
+    console.info(fileListStatus)
+}
 
