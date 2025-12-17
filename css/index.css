@@ -96,9 +96,14 @@ html {
     content: '';
     display: block;
     height: 100%;
-    width: calc(var(--process) * 1%);
+    width: 100%;
+    /* width: calc(var(--process) * 1%); */
+    /* 改用transform效率更高 */
+    transform: scaleX(calc(var(--process) * 1%));
+    transform-origin: left center;
+    transition: transform 0.3s;
     background-color: greenyellow;
-    transition: width 0.3s;
+    /* transition: width 0.3s; */
 }
 
 .process::after {

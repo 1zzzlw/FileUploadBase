@@ -33,13 +33,14 @@ function computedFileChunkHash(data) {
                 chunkIndex: index,
                 chunkHash: chunkHash,
                 chunkArrayBuffer: arraybuffer,
-                chunkBlob: blob
+                chunkBlob: blob,
+                isUploaded: false,
             })
         }
 
         // 读取blob为二进制的 ArrayBuffer 格式，读取完成之后执行onload
         fileReader.readAsArrayBuffer(blob)
 
-        console.info(`文件块${index}的blob对象 =======> ${blob}`)
+        // console.info(`文件块${index}的blob对象 =======> ${blob}`)
     })
 }

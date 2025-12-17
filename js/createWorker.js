@@ -3,7 +3,7 @@ const CHUNK_SIZE = 1024 * 1024 * 1
 // 分配线程数的数量
 const THREAD_COUNT = navigator.hardwareConcurrency || 4
 
-export function createThread(file) {
+export function createThread(file, doneUploadChunkList) {
     return new Promise((resolve) => {
         // 计算分块数量
         const chunkCount = Math.ceil(file.size / CHUNK_SIZE)
@@ -47,6 +47,7 @@ export function createThread(file) {
                 CHUNK_SIZE,
                 start,
                 end,
+                doneUploadChunkList,
             })
 
             createThreadNumber++
