@@ -3,7 +3,7 @@ importScripts('./spark-md5.js')
 function computedFileChunkHash(data) {
     return new Promise((resolve) => {
         // 收到总文件，以及块的索引，块的尺寸
-        const { file, index, CHUNK_SIZE } = data
+        const { file, index, CHUNK_SIZE, fileTaskMap, fileKey } = data
 
         // 每个块的开始尺寸
         const start = index * CHUNK_SIZE
@@ -29,13 +29,14 @@ function computedFileChunkHash(data) {
 
             const chunkHash = chunkSpark.end()
 
-            resolve({
-                chunkIndex: index,
-                chunkHash: chunkHash,
-                chunkArrayBuffer: arraybuffer,
-                chunkBlob: blob,
-                isUploaded: false,
-            })
+            const fileTask = fileTaskMap.get(fileKey);
+
+            fileTask.chunkIndex = index
+            fileTask.chunkHash = chunkHash
+            fileTask.chunkArrayBuffer = arraybuffer
+            fileTask.chunkBlob = blob
+
+            resolve(fileTaskMap)
         }
 
         // 读取blob为二进制的 ArrayBuffer 格式，读取完成之后执行onload

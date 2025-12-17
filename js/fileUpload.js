@@ -219,49 +219,22 @@ async function uploadSuccessFileChunk(fileHash) {
 }
 
 async function multiThreadUpload(fileInfo, file, index, doneUploadChunkList, fileHash) {
-    const fileSpark = new SparkMD5.ArrayBuffer()
-
     // 对文件进行切片，得到
-    const chunks = await createThread(file, doneUploadChunkList)
-
-    console.info(chunks)
-
-    if (fileHash == null) {
-        // 计算总文件的大小
-        for (const chunk of chunks) {
-            fileSpark.append(chunk.chunkArrayBuffer)
+    createThread(file, doneUploadChunkList, fileHash, (e) => {
+        const fileHash = e.fileKey
+        if (e.fileTask === null) {
+            // 说明所以的分块都上传过一次了，直接进行合并
+            mergeFile(fileHash, fileInfo, index)
+            return
         }
-
-        fileHash = fileSpark.end()
-
+        const { chunkIndex, chunkHash, chunkBlob } = e.fileTask
+        const isNeedMerge = e.isNeedMerge
         // 解决刷新状态丢失的问题
         localStorage.setItem(`fileHash-${fileInfo.fileName}`, fileHash)
-
         fileInfo.fileHash = fileHash
-    }
+        upload(fileInfo, chunkIndex, chunkHash, chunkBlob, fileHash, index, isNeedMerge)
+    })
 
-    let uploadedNumber = 0
-
-    for (let i = 0; i < chunks.length; i++) {
-        const { chunkIndex, chunkHash, chunkBlob } = chunks[i]
-
-        if (doneUploadChunkList.includes(chunkIndex)) {
-            console.info('已经有了')
-            uploadedNumber++
-            if (uploadedNumber === chunks.length) {
-                // 如果所有分块都已上传，直接调用合并接口
-                mergeFile(chunks, fileHash, fileInfo.fileName)
-            }
-            let process = fileInfo.process
-            process += Math.ceil(1024 * 1024 * 1 / fileInfo.fileSize * 100)
-            process = process > 100 ? 100 : process
-            fileInfo.process = process
-            fileListStatus.processList[index].style.setProperty('--process', process)
-            continue
-        }
-
-        upload(fileInfo, chunks, chunkIndex, chunkHash, chunkBlob, fileHash, index)
-    }
 }
 
 async function singleThreadUpload(fileInfo, file, index) {
@@ -283,7 +256,7 @@ async function singleThreadUpload(fileInfo, file, index) {
 
 }
 
-async function upload(fileInfo, chunks, chunkIndex, chunkHash, chunkBlob, fileHash, index) {
+async function upload(fileInfo, chunkIndex, chunkHash, chunkBlob, fileHash, index, isNeedMerge) {
     const formData = new FormData()
 
     formData.append('chunkBlob', chunkBlob)
@@ -299,7 +272,7 @@ async function upload(fileInfo, chunks, chunkIndex, chunkHash, chunkBlob, fileHa
             const chunkLoaded = e.loaded
             // 四舍五入
             let process = fileInfo.process
-            process += Math.round(chunkLoaded / chunkBlob.size * 100)
+            process += Math.ceil(chunkLoaded / fileInfo.fileSize * 100)
 
             process = process > 100 ? 100 : process
 
@@ -312,25 +285,22 @@ async function upload(fileInfo, chunks, chunkIndex, chunkHash, chunkBlob, fileHa
     await sendFileChunkApi(formData, config).then((res) => {
         console.info('发送成功', res.data)
         fileInfo.fileStatus = status.success
-        chunks[chunkIndex].isUploaded = true
     }).catch((error) => {
         console.info(error)
     })
 
-    mergeFile(chunks, fileHash, fileInfo.fileName)
+    if (isNeedMerge) {
+        // 需要进行融合
+        mergeFile(fileHash, fileInfo, index)
+    }
 }
 
-async function mergeFile(chunks, fileHash, filename) {
-    console.info(chunks, fileHash)
-    const isAllUploaded = chunks.every(chunk => chunk.isUploaded)
-
-    if (isAllUploaded) {
-        await mergeFileChunkApi(fileHash, filename).then((res) => {
-            console.info('合并成功')
-        })
-    } else {
-        console.info('存在分块文件传输失败，需要重新上传')
-    }
+async function mergeFile(fileHash, fileInfo, index) {
+    await mergeFileChunkApi(fileHash, fileInfo.fileName).then((res) => {
+        console.info('合并成功')
+        fileInfo.process = 100
+        fileListStatus.processList[index].style.setProperty('--process', 100)
+    })
 }
 
 // 测试不使用worker线程来计算文件的hash和分块
