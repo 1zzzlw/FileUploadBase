@@ -1,5 +1,5 @@
 import { sendFileChunkApi, uploadSuccessFileChunkApi, mergeFileChunkApi } from './uploadApi.js';
-import { createThread } from './createWorker.js';
+import { createThread } from './fileChunkWorker.js';
 
 const $ = document.querySelector.bind(document)
 
